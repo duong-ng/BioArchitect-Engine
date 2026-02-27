@@ -1,0 +1,29 @@
+TÊN DỰ ÁN: HỆ THỐNG LỌC ĐA TẦNG BIO-ARCHITECT
+Tối ưu hóa thu hồi Đất hiếm từ nước thải mỏ bằng Màng lọc hấp phụ xanh và AI In-silico Protein Design
+1. Tóm tắt dự án (Abstract)
+Dự án đề xuất hệ thống thu hồi tài nguyên chiến lược (REEs) từ nước thải axit mỏ (AMD) thông qua quy trình hai giai đoạn:
+Giai đoạn 1 (Lọc đại trà): Sử dụng màng lọc từ vật liệu xanh (Chitosan/Than sinh học từ vỏ trấu) để loại bỏ các kim loại tạp chất nồng độ cao ($Fe, Al, Cu, Pb$).
+Giai đoạn 2 (Thu hồi chọn lọc): Sử dụng Protein Lanmodulin được tối ưu hóa bởi AI (Bio-Architect Engine) để "bắt" chính xác các ion Đất hiếm giá trị cao.
+Toàn bộ quy trình được tự động hóa qua hệ thống IoT (ESP32) để đảm bảo hiệu suất vận hành thời gian thực.
+
+2. Cơ chế hoạt động cốt lõi (Core Mechanisms)
+2.1. Tầng 1: Màng lọc xanh – Tiền xử lý (Green Membrane Stage)
+Vật liệu: Phức hợp Chitosan-Biochar (tổng hợp từ vỏ tôm và vỏ trấu).
+Cơ chế: Chitosan chứa nhóm chức $-NH_2$ và $-OH$ có khả năng tạo phức chelate mạnh với các kim loại nặng phổ biến. Tầng này đóng vai trò "người bảo vệ", hấp phụ 80-90% kim loại tạp chất, ngăn chặn hiện tượng tranh chấp vị trí gắn kết (binding competition) ở tầng tiếp theo.
+2.2. Tầng 2: Thu hồi chọn lọc bằng Protein thiết kế bởi AI (Bio-Architect Stage)
+Thiết kế In-silico: Sử dụng thuật toán di truyền và Matrix Exponentiation để mô phỏng sự thay đổi cấu trúc của Lanmodulin. AI sẽ tinh chỉnh khoảng cách các gốc Aspartate/Glutamate về mức $r \approx 0.7 - 1.1 \text{\AA}$ để khớp hoàn hảo với bán kính ion Đất hiếm mục tiêu.
+Cơ chế chọn lọc: Nhờ sự tinh chỉnh của AI, Protein chỉ "mở khóa" cho các ion Đất hiếm, bỏ qua các tạp chất còn sót lại từ Tầng 1, tạo ra sản phẩm thu hồi có độ tinh khiết cao.
+2.3. Hệ thống nhúng & IoT: Bộ não điều phối
+Xử lý dữ liệu: ESP32 sử dụng cấu trúc Fenwick Tree (BIT) để lọc nhiễu tín hiệu từ cảm biến pH và TDS đầu vào/đầu ra của từng tầng.
+Logic điều khiển: Nếu cảm biến giữa Tầng 1 và Tầng 2 báo nồng độ kim loại tạp chất còn cao, hệ thống tự động giảm tốc độ bơm nhu động để tăng thời gian lưu (retention time), đảm bảo Tầng 2 luôn nhận được dung dịch "sạch" nhất.
+
+3. Tính Mới và Tính Sáng tạo (Novelty)
+Công nghệ Lọc phân bậc (Sequential Filtration): Khác với các dự án chỉ có 1 tầng lọc đơn lẻ, hệ thống này mô phỏng quy trình công nghiệp thực thụ, giải quyết bài toán "tranh chấp ion" – vấn đề nan giải nhất trong thu hồi đất hiếm.
+Vật liệu lai (Hybrid Materials): Kết hợp giữa vật liệu sinh học thô (vật liệu xanh) và vật liệu sinh học công nghệ cao (protein thiết kế bởi AI).
+Tối ưu hóa tài nguyên: Sử dụng rác thải nông nghiệp (vỏ trấu) để thu hồi kim loại quý, hiện thực hóa mô hình Kinh tế tuần hoàn triệt để.
+
+4. Kế hoạch triển khai & Tài trợ (Roadmap & Funding)
+Giai đoạn 1: Chế tạo màng lọc Chitosan/Biochar và lắp ráp trạm IoT cầm tay (Bio-Architect Pro).
+Giai đoạn 2: Chạy mô phỏng AI để xuất ra bản thiết kế protein tối ưu và thực nghiệm với dung dịch mô phỏng (Hạt nhựa Proxy).
+Xin tài trợ: Tập trung vào các doanh nghiệp môi trường mỏ và các khoa Công nghệ Sinh học để xin hỗ trợ máy in 3D vỏ máy và máy đo quang phổ (AAS) kiểm chứng nồng độ sau lọc.
+
