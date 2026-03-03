@@ -1,8 +1,19 @@
 import time
 from step1_mutation_generator import ProteinMPNNGenerator
-from step2_folding_evaluator import ESMFoldEvaluator
 from step3_genetic_optimizer import BioArchitectGA
 from step4_md_validation import MDValidator
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Backend Selection: HuggingFace Transformers vs fair-esm
+# ═══════════════════════════════════════════════════════════════════════════
+USE_HUGGINGFACE = False  # Set to False to use original fair-esm backend
+
+if USE_HUGGINGFACE:
+    from step2_hf_folding_evaluator import HFEsmFoldEvaluator as ESMFoldEvaluator
+    print("[Config] Using HuggingFace EsmForProteinFolding backend")
+else:
+    from step2_folding_evaluator import ESMFoldEvaluator
+    print("[Config] Using original fair-esm ESMFold backend")
 
 # 6MI5 FASTA SEQUENCE
 base_fasta = "PTTTTKVDIAAFDPDKDGTIDLKEALAAGSAAFDKLDPDKDGTLDAKELKGRVSEADLKKLDPDNDGTLDKKEYLAAVEAQFKAANPDNDGTIDARELASPAGSALVNLIRHHHHHH"
@@ -26,7 +37,7 @@ def run_bioarchitect_pipeline():
     # Init modules
     generator = ProteinMPNNGenerator(base_fasta, ef_hands)
     evaluator = ESMFoldEvaluator(device='cpu')
-    ga_optimizer = BioArchitectGA(target_distance=(0.7, 1.1))
+    ga_optimizer = BioArchitectGA(target_distance=(2.3,2.6))
     validator = MDValidator()
 
     # Pipeline Step 1: Initial Population via ProteinMPNN
