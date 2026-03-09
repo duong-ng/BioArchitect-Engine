@@ -1,0 +1,42 @@
+Role: Bạn là một Computational Structural Biologist chuyên sâu về các kiến trúc học sâu như AlphaFold2 và OpenFold. Bạn có kinh nghiệm tối ưu hóa các pipeline thiết kế protein chạy trên môi trường hạn chế tài nguyên (RAM < 32GB, No/Low VRAM).
+
+Context: Tôi đang nâng cấp dự án Bio-Architect. Hệ thống hiện tại dùng ESMFold-v1 nhưng gặp lỗi OOM và độ chính xác chưa đủ để mô phỏng túi liên kết EF-hand cho ion La3+ với khoảng cách mục tiêu 2.4 - 2.7 Å. Tôi cần chuyển đổi step2_folding_evaluator.py sang sử dụng AlphaFold2 (ưu tiên bản Local ColabFold hoặc OpenFold) để đạt được độ tin cậy cấu trúc cao nhất.
+
+Yêu cầu Task:
+
+Refactor Module Gấp Protein:
+
+Viết lại ESMFoldEvaluator thành AlphaFold2Evaluator.
+
+Sử dụng Local ColabFold kết hợp với MMseqs2 API để tạo MSA (Multiple Sequence Alignment) nhanh chóng mà không cần tải database 3TB.
+
+Cấu hình mô hình chạy ở chế độ "Single Sequence" nếu không có kết nối internet, nhưng vẫn giữ kiến trúc AF2 để dự đoán tọa độ nguyên tử chính xác hơn ESMFold.
+
+Tối ưu hóa Bộ nhớ (Memory Efficiency):
+
+Triển khai cơ chế Model Chunking hoặc Unified Memory để nạp mô hình vào RAM hệ thống nếu VRAM không đủ.
+
+Sử dụng các tham số num_recycles=3 để cân bằng giữa độ chính xác và thời gian chạy.
+
+Đảm bảo mã nguồn giải phóng bộ nhớ (torch.cuda.empty_cache() và gc.collect()) ngay sau khi xuất file PDB để GA có thể tiếp tục chạy.
+
+Cập nhật Fitness Function (GA Integration):
+
+Thay đổi cách lấy điểm tin cậy: Sử dụng pLDDT và PAE (Predicted Aligned Error) từ AlphaFold2 làm trọng số cho hàm tính Fitness trong step3_genetic_optimizer.py.
+
+Tập trung độ chính xác vào vùng EF-hand (Residues đã định nghĩa trong ef_hands).
+
+Xử lý lỗi Topology:
+
+Đảm bảo đầu ra PDB tương thích 100% với OpenMM bằng cách tích hợp trực tiếp PDBFixer vào quy trình để xử lý lỗi thiếu nguyên tử đầu tận (Terminal atoms) mà hệ thống cũ đã gặp phải.
+
+Output yêu cầu:
+Cung cấp mã nguồn Python hoàn chỉnh cho module step2 mới và hướng dẫn cài đặt các phụ thuộc nhẹ (lightweight dependencies) để chạy được trên máy tính cá nhân.
+
+Tại sao sự chuyển đổi này mang lại "Hiệu quả tối đa"?
+
+Về kết quả:
+AlphaFold2 vượt trội hơn ESMFold trong việc dự đoán vị trí các chuỗi bên (side-chains) của Aspartate và Glutamate. Điều này cực kỳ quan trọng vì sự chọn lọc ion đất hiếm phụ thuộc vào độ chính xác từng Angstrom của các gốc này.
+
+Về bộ nhớ:
+Bản ESMFold-v1 15B bạn đang dùng là một "quái vật" về RAM. Trong khi đó, AlphaFold2 (bản gốc hoặc OpenFold) có cấu trúc phân mảnh hơn, cho phép chạy các protein nhỏ như Lanmodulin (117 AA) với lượng RAM khiêm tốn hơn nếu được cấu hình đúng (tắt các database khổng lồ).

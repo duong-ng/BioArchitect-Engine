@@ -1,1 +1,36 @@
-Th�nh ph?nM� h�nh truy?n th?ngY�u c?u trong LanRecov� nghia k? thu?tM?c ti�u t?i uu?n d?nh c?u tr�c?n d?nh + ch?n l?c ion + b?n trong pH < 3.0Chuy?n t? stability sang functional stability�?i tu?ng li�n k?tKim lo?i n�i chungT?i uu theo t?ng Lanthanide c? th? (La�?, Nd�?, Dy�?...)Thi?t k? theo m?c ti�u t�i nguy�nChi?n lu?c ch?n l?cTang �i l?c t?ng qu�t�i?u ch?nh h�nh h?c ph?i tr� v� di?n t�ch c?c b? ph� h?p b�n k�nh ion t?ng nguy�n t?Thi?t k? t�i li�n k?t "v?a kh�t" t?ng ionH�nh h?c ph?i tr�Kh�ng r�ng bu?c c? th?Kho?ng c�ch 2.3-2.6 � di?u ch?nh theo b�n k�nh ionC� nh�n h�a c?u tr�c li�n k?tGi?m c?nh tranh ionKh�ng uu ti�nT?i uu gi?m tuong t�c v?i Fe�?, Ca�?, Al�?Tang t�nh ?ng d?ng th?c t?Chi?n lu?c d?t bi?nRandom / broad mutation�?t bi?n di?m t?i EF-hand d? thay d?i m�i tru?ng ph?i tr��i?u ch?nh vi m�i tru?ng h�a h?cH�m ch?m di?mD?a tr�n c?u tr�cT�ch h?p nang lu?ng li�n k?t theo t?ng ion m?c ti�uS�ng l?c theo "nguy�n t? d�ch"M?c d? t�y bi?nM?t protein - m?t ch?c nangM?t khung protein - nhi?u c?u h�nh t?i uu theo ionN?n t?ng c� th? c?u h�nh theo nhu c?u?ng d?ng cu?i c�ngNghi�n c?u sinh h?cThu h?i ch?n l?c t�i nguy�n c? th?G?n tr?c ti?p v?i gi� tr? kinh t?
+  -----------------------------------------------------------------------
+  Thành phần Mô hình       Yêu cầu trong LanRecov       Ý nghĩa kỹ thuật
+             truyền thống                               
+  ---------- ------------- ---------------------------- -----------------
+  Mục tiêu   Ổn định cấu   Ổn định + chọn lọc ion + bền Chuyển từ
+  tối ưu     trúc          trong pH < 3.0               stability sang
+                                                        functional
+                                                        stability
+
+  Đối tượng  Kim loại nói  Tối ưu theo từng Lanthanide  Thiết kế theo mục
+  liên kết   chung         cụ thể (La³⁺, Nd³⁺, Dy³⁺…)   tiêu tài nguyên
+
+  Chiến lược Tăng ái lực   Điều chỉnh hình học phối trí Thiết kế túi liên
+  chọn lọc   tổng quát     và điện tích cục bộ phù hợp  kết “vừa khít”
+                           bán kính ion từng nguyên tố  từng ion
+
+  Hình học   Không ràng    Khoảng cách 2.3–2.6 Å điều   Cá nhân hóa cấu
+  phối trí   buộc cụ thể   chỉnh theo bán kính ion      trúc liên kết
+
+  Giảm cạnh  Không ưu tiên Tối ưu giảm tương tác với    Tăng tính ứng
+  tranh ion                Fe³⁺, Ca²⁺, Al³⁺             dụng thực tế
+
+  Chiến lược Random /      Đột biến điểm tại EF-hand để Điều chỉnh vi môi
+  đột biến   broad         thay đổi môi trường phối trí trường hóa học
+             mutation                                   
+
+  Hàm chấm   Dựa trên cấu  Tích hợp năng lượng liên kết Sàng lọc theo
+  điểm       trúc          theo từng ion mục tiêu       “nguyên tố đích”
+
+  Mức độ tùy Một protein – Một khung protein – nhiều    Nền tảng có thể
+  biến       một chức năng cấu hình tối ưu theo ion     cấu hình theo nhu
+                                                        cầu
+
+  Ứng dụng   Nghiên cứu    Thu hồi chọn lọc tài nguyên  Gắn trực tiếp với
+  cuối cùng  sinh học      cụ thể                       giá trị kinh tế
+  -----------------------------------------------------------------------
