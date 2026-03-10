@@ -75,13 +75,15 @@ class BioArchitectGA:
         # Load ion parameters
         self.ion_params = get_ion_params(target_ion)
         
-        # ── Fitness weights (REBALANCED for convergence) ─────────────
+        # ── Fitness weights (REBALANCED with AF2 confidence) ────────
         # Geometry dominates to force pocket convergence first
-        self.w_geometry = 0.45     # Geometric distance score (was 0.30)
-        self.w_binding = 0.20     # Binding energy score (was 0.25)
-        self.w_stability = 0.15   # Network stability - matrix exp (was 0.20)
-        self.w_selectivity = 0.12 # Ion selectivity vs competitors (was 0.15)
-        self.w_coordination = 0.08 # Coordination geometry quality (was 0.10)
+        # w_confidence added for AF2 pLDDT/PAE integration
+        self.w_geometry = 0.40     # Geometric distance score
+        self.w_binding = 0.18     # Binding energy score
+        self.w_stability = 0.15   # Network stability - matrix exp
+        self.w_selectivity = 0.10 # Ion selectivity vs competitors
+        self.w_coordination = 0.07 # Coordination geometry quality
+        self.w_confidence = 0.10  # AF2 confidence bonus (pLDDT + PAE)
         
         # Cliff penalty threshold: any distance beyond this gets
         # exponentially crushed
@@ -295,23 +297,97 @@ class BioArchitectGA:
         
         return float(0.6 * score + 0.4 * cn_match)
 
-    def calculate_fitness(self, coords, target_res_1, target_res_2,
-                          sequence=None, binding_indices=None):
+    def _confidence_bonus(self, confidence_scores, binding_indices=None):
         """
-        LanRecov Fitness Function with CLIFF PENALTY:
+        Compute confidence bonus from AlphaFold2 pLDDT and PAE scores.
         
-            F = w₁·Geometric(cliff) + w₂·BindingEnergy + w₃·Stability + 
-                w₄·Selectivity + w₅·Coordination
+        Higher pLDDT in EF-hand regions = more trustworthy pocket geometry.
+        Lower PAE between binding residues = higher inter-residue accuracy.
         
-        The geometric term uses an exponential cliff penalty for r > 3.0 Å,
-        which drives fitness near zero for structures with large pocket distances.
+        ConfidenceBonus = ef_hand_plddt_norm * (1 - ef_hand_pae_norm)
+        
+        When confidence_scores is None (e.g. ESMFold without PAE),
+        returns a neutral score of 0.5 so it does not penalize or boost.
         
         Args:
-            coords (np.ndarray): CA coordinates from ESMFold.
+            confidence_scores (dict or None): From evaluator.get_confidence_scores().
+                Expected keys: 'plddt' (np.ndarray), 'mean_plddt' (float),
+                               'pae' (np.ndarray or None), 'ef_hand_plddt' (dict).
+            binding_indices (list[int], optional): Binding site residue indices.
+        
+        Returns:
+            float: Score (0–1), higher = more confident prediction.
+        """
+        if confidence_scores is None:
+            return 0.5  # Neutral — no confidence data available
+        
+        # ── pLDDT component ──────────────────────────────────────────
+        # Use EF-hand-specific pLDDT if available, else global mean
+        ef_hand_plddt = confidence_scores.get("ef_hand_plddt", {})
+        if ef_hand_plddt:
+            mean_ef_plddt = float(np.mean(list(ef_hand_plddt.values())))
+        elif binding_indices is not None:
+            plddt = confidence_scores.get("plddt", None)
+            if plddt is not None and len(plddt) > 0:
+                valid_idx = [i for i in binding_indices if i < len(plddt)]
+                mean_ef_plddt = float(np.mean(plddt[valid_idx])) if valid_idx else 50.0
+            else:
+                mean_ef_plddt = confidence_scores.get("mean_plddt", 50.0)
+        else:
+            mean_ef_plddt = confidence_scores.get("mean_plddt", 50.0)
+        
+        # Normalize pLDDT to 0–1 (scores are 0–100)
+        plddt_norm = min(1.0, max(0.0, mean_ef_plddt / 100.0))
+        
+        # ── PAE component ────────────────────────────────────────────
+        pae = confidence_scores.get("pae", None)
+        ef_hand_pae = confidence_scores.get("ef_hand_pae", None)
+        
+        if ef_hand_pae is not None:
+            # Lower PAE = better. Typical range: 0–30 Å
+            pae_norm = min(1.0, max(0.0, ef_hand_pae / 30.0))
+        elif pae is not None and binding_indices is not None:
+            # Compute PAE between binding site residues
+            n = pae.shape[0] if hasattr(pae, 'shape') else len(pae)
+            valid_idx = [i for i in binding_indices if i < n]
+            if len(valid_idx) >= 2:
+                pae_arr = np.array(pae)
+                sub = pae_arr[np.ix_(valid_idx, valid_idx)]
+                mean_binding_pae = float(np.mean(sub))
+                pae_norm = min(1.0, max(0.0, mean_binding_pae / 30.0))
+            else:
+                pae_norm = 0.5  # Neutral
+        else:
+            pae_norm = 0.5  # Neutral — no PAE data (ESMFold)
+        
+        # ── Combined score ───────────────────────────────────────────
+        # High pLDDT (close to 1) AND low PAE (close to 0) = high bonus
+        bonus = plddt_norm * (1.0 - pae_norm)
+        
+        return float(bonus)
+
+    def calculate_fitness(self, coords, target_res_1, target_res_2,
+                          sequence=None, binding_indices=None,
+                          confidence_scores=None):
+        """
+        LanRecov Fitness Function with CLIFF PENALTY + AF2 Confidence:
+        
+            F = w₁·Geometric(cliff) + w₂·BindingEnergy + w₃·Stability + 
+                w₄·Selectivity + w₅·Coordination + w₆·ConfidenceBonus
+        
+        The geometric term uses an exponential cliff penalty for r > 3.0 Å.
+        The confidence bonus uses AlphaFold2 pLDDT and PAE to weight 
+        how much we trust the predicted pocket geometry.
+        
+        Args:
+            coords (np.ndarray): CA coordinates from AF2/ESMFold.
             target_res_1 (int): First target residue index.
             target_res_2 (int): Second target residue index.
             sequence (str, optional): Protein sequence for residue type analysis.
             binding_indices (list[int], optional): All binding site residue indices.
+            confidence_scores (dict, optional): From evaluator.get_confidence_scores().
+                Contains 'plddt', 'pae', 'ef_hand_plddt', 'ef_hand_pae'.
+                When None, confidence bonus defaults to 0.5 (neutral).
             
         Returns:
             tuple: (fitness, distance, score_breakdown)
@@ -355,6 +431,9 @@ class BioArchitectGA:
         coord_indices = binding_indices if binding_indices else [target_res_1, target_res_2]
         coord_score = self._coordination_score(coords, coord_indices)
         
+        # 6. AF2 Confidence bonus (pLDDT + PAE)
+        conf_score = self._confidence_bonus(confidence_scores, coord_indices)
+        
         # ── Weighted total fitness ──────────────────────────────────────
         # The cliff penalty in geo_score already crushes bad candidates,
         # so the weighted sum naturally produces near-zero fitness for
@@ -364,7 +443,8 @@ class BioArchitectGA:
             self.w_binding * bind_score +
             self.w_stability * stability_score +
             self.w_selectivity * select_score +
-            self.w_coordination * coord_score
+            self.w_coordination * coord_score +
+            self.w_confidence * conf_score
         )
         
         # Additional penalty multiplier: if distance is extremely bad
@@ -379,6 +459,7 @@ class BioArchitectGA:
             "stability": stability_score,
             "selectivity": select_score,
             "coordination": coord_score,
+            "confidence": conf_score,
             "total": fitness,
         }
         

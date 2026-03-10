@@ -8,6 +8,7 @@ files = [
     "lanthanide_params.py",
     "step1_mutation_generator.py",
     "step2_folding_evaluator.py",
+    "step2_af2_folding_evaluator.py",
     "step3_genetic_optimizer.py",
     "step4_md_validation.py",
     "main_optimizer.py",
@@ -43,6 +44,13 @@ try:
     print("  OK  step3_genetic_optimizer")
 except Exception as e:
     print(f"  FAIL step3_genetic_optimizer: {e}")
+    all_ok = False
+
+try:
+    from step2_af2_folding_evaluator import AlphaFold2Evaluator
+    print("  OK  step2_af2_folding_evaluator")
+except Exception as e:
+    print(f"  FAIL step2_af2_folding_evaluator: {e}")
     all_ok = False
 
 # Test GA cliff penalty

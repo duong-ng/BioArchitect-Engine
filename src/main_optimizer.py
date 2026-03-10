@@ -39,16 +39,36 @@ from lanthanide_params import (
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  Backend Selection: HuggingFace Transformers vs fair-esm
+#  Backend Selection: ESMFold / HuggingFace / AlphaFold2
 # ═══════════════════════════════════════════════════════════════════════════
-USE_HUGGINGFACE = False  # Set to True to use HuggingFace backend
+# Backend priority: af2 > hf > esm (set via USE_BACKEND variable or --backend flag)
+USE_BACKEND = "af2"  # Options: "af2", "hf", "esm"
 
-if USE_HUGGINGFACE:
-    from step2_hf_folding_evaluator import HFEsmFoldEvaluator as ESMFoldEvaluator
-    print("[Config] Using HuggingFace EsmForProteinFolding backend")
-else:
+def _load_evaluator_class(backend_name):
+    """Dynamically load the correct evaluator class based on backend name."""
+    if backend_name == "af2":
+        try:
+            from step2_af2_folding_evaluator import AlphaFold2Evaluator
+            print("[Config] Using AlphaFold2 backend (ColabFold/OpenFold)")
+            return AlphaFold2Evaluator, "af2"
+        except ImportError as e:
+            print(f"[Config] AF2 backend unavailable ({e}), trying HuggingFace...")
+            backend_name = "hf"
+    
+    if backend_name == "hf":
+        try:
+            from step2_hf_folding_evaluator import HFEsmFoldEvaluator
+            print("[Config] Using HuggingFace EsmForProteinFolding backend")
+            return HFEsmFoldEvaluator, "hf"
+        except ImportError as e:
+            print(f"[Config] HF backend unavailable ({e}), using original ESMFold...")
+            backend_name = "esm"
+    
     from step2_folding_evaluator import ESMFoldEvaluator
     print("[Config] Using original fair-esm ESMFold backend")
+    return ESMFoldEvaluator, "esm"
+
+EvaluatorClass, ACTIVE_BACKEND = _load_evaluator_class(USE_BACKEND)
 
 from step3_genetic_optimizer import BioArchitectGA
 
@@ -104,7 +124,19 @@ def run_bioarchitect_pipeline(target_ion="La", pH=7.0, generations=20,
         target_ion=target_ion,
         pH_resistant=pH_resistant,
     )
-    evaluator = ESMFoldEvaluator(device='cpu')
+    
+    # Initialize evaluator based on active backend
+    if ACTIVE_BACKEND == "af2":
+        evaluator = EvaluatorClass(
+            device='cpu',
+            num_recycles=3,
+            ef_hands=ef_hands,
+            fix_pdb=True,
+            fix_pH=pH,
+        )
+    else:
+        evaluator = EvaluatorClass(device='cpu')
+    
     ga_optimizer = BioArchitectGA(
         target_ion=target_ion,
         ef_hands=ef_hands,
@@ -135,14 +167,22 @@ def run_bioarchitect_pipeline(target_ion="La", pH=7.0, generations=20,
         scored_population = []
         
         for idx, seq in enumerate(population):
-            # Pipeline Step 2: Ultra-fast Folding using ESMFold
+            # Pipeline Step 2: Structure prediction (AF2/ESMFold)
             coords = evaluator.predict_structure(seq)
+            
+            # Get confidence scores if available (AF2 provides PAE)
+            confidence_scores = None
+            try:
+                confidence_scores = evaluator.get_confidence_scores()
+            except (RuntimeError, AttributeError):
+                pass
             
             # Pipeline Step 3: LanRecov Fitness Evaluation
             fitness, dist, breakdown = ga_optimizer.calculate_fitness(
                 coords, target_res_1, target_res_2,
                 sequence=seq,
                 binding_indices=binding_indices,
+                confidence_scores=confidence_scores,
             )
             scored_population.append((fitness, dist, breakdown, seq, coords))
             
@@ -157,7 +197,8 @@ def run_bioarchitect_pipeline(target_ion="La", pH=7.0, generations=20,
               f"Bind={top_breakdown['binding_energy']:.3f} "
               f"Stab={top_breakdown['stability']:.3f} "
               f"Sel={top_breakdown['selectivity']:.3f} "
-              f"Coord={top_breakdown['coordination']:.3f}")
+              f"Coord={top_breakdown['coordination']:.3f} "
+              f"Conf={top_breakdown.get('confidence', 0.5):.3f}")
         
         if top_fitness > best_fitness:
             best_fitness = top_fitness
@@ -293,6 +334,9 @@ if __name__ == "__main__":
                         help="Target Lanthanide ion (e.g. La, Nd, Dy)")
     parser.add_argument("--multi", type=str, default=None,
                         help="Comma-separated list of ions for multi-ion screening (e.g. La,Nd,Dy)")
+    parser.add_argument("--backend", type=str, default="af2",
+                        choices=["af2", "hf", "esm"],
+                        help="Folding backend: af2 (AlphaFold2), hf (HuggingFace ESMFold), esm (fair-esm)")
     parser.add_argument("--pH", type=float, default=7.0,
                         help="Solution pH for MD validation (default: 7.0)")
     parser.add_argument("--generations", type=int, default=20,
@@ -305,6 +349,10 @@ if __name__ == "__main__":
                         help="Bias mutations toward pH-resistant residues")
     
     args = parser.parse_args()
+    
+    # Override backend if specified via CLI
+    if args.backend != USE_BACKEND:
+        EvaluatorClass, ACTIVE_BACKEND = _load_evaluator_class(args.backend)
     
     if args.multi:
         ions = [ion.strip() for ion in args.multi.split(",")]
