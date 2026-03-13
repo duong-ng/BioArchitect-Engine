@@ -8,9 +8,8 @@
  Backend priority:
    1. LocalColabFold + MMseqs2 API — highest accuracy, online MSA
    2. OpenFold single-sequence — offline fallback, AF2 architecture
-   3. ESMFold legacy — last resort if AF2 unavailable
 
- Key improvements over ESMFold backend:
+ Key features:
    - PAE (Predicted Aligned Error) extraction for inter-residue confidence
    - PDBFixer integration for 100% OpenMM-compatible PDB output
    - Memory-optimized: model chunking, CPU offloading, aggressive cleanup
@@ -106,14 +105,11 @@ HAS_TORCH, HAS_CUDA, VRAM_GB = _detect_torch()
 class AlphaFold2Evaluator:
     """
     AlphaFold2-based Protein Structure Evaluator for BioArchitect Engine.
-    
-    Drop-in replacement for ESMFoldEvaluator with superior side-chain accuracy
-    and additional PAE (Predicted Aligned Error) confidence metric.
+    Superior side-chain accuracy and PAE (Predicted Aligned Error) confidence.
     
     Backend priority:
       1. LocalColabFold — AF2 + MMseqs2 API (online, full MSA)
       2. OpenFold — AF2 architecture, single-sequence mode (offline)
-      3. ESMFold fallback — legacy compatibility
     
     Key features for LanRecov:
       - PAE matrix extraction → inter-residue confidence for EF-hand binding
@@ -220,25 +216,12 @@ class AlphaFold2Evaluator:
             print("[AF2]    No MSA — using AF2 architecture without alignment")
             return
 
-        # Backend 3: ESMFold fallback
-        try:
-            from step2_folding_evaluator import ESMFoldEvaluator
-            self.backend = "esmfold_fallback"
-            self._esmfold = ESMFoldEvaluator(device=self.device)
-            print("[AF2] ⚠️  Backend: ESMFold fallback (AF2 not available)")
-            print("[AF2]    Install ColabFold: pip install colabfold[alphafold]")
-            print("[AF2]    Or install OpenFold: pip install openfold")
-            return
-        except Exception:
-            pass
-
         # No backend available
         self.backend = "none"
         print("[AF2] ❌ No folding backend available!")
         print("[AF2]    Install one of:")
         print("[AF2]      pip install colabfold[alphafold]   (recommended)")
         print("[AF2]      pip install openfold               (offline AF2)")
-        print("[AF2]      pip install transformers torch     (ESMFold fallback)")
 
     # ──────────────────────────────────────────────────────────────────────
     #  Public API: predict_structure (drop-in compatible)
@@ -292,8 +275,6 @@ class AlphaFold2Evaluator:
                 result = self._predict_colabfold(sequence)
             elif self.backend == "openfold":
                 result = self._predict_openfold(sequence)
-            elif self.backend == "esmfold_fallback":
-                result = self._predict_esmfold_fallback(sequence)
             else:
                 raise RuntimeError(
                     "[AF2] No backend available. Install colabfold or openfold."
@@ -608,33 +589,6 @@ class AlphaFold2Evaluator:
         }
 
         return features
-
-    # ──────────────────────────────────────────────────────────────────────
-    #  Backend 3: ESMFold Fallback
-    # ──────────────────────────────────────────────────────────────────────
-
-    def _predict_esmfold_fallback(self, sequence):
-        """
-        Fallback to ESMFold when AF2 backends are unavailable.
-        Wraps the existing ESMFoldEvaluator with AF2-compatible output format.
-        """
-        print("[AF2-Fallback] Using ESMFold as fallback...")
-
-        ca_coords = self._esmfold.predict_structure(sequence)
-        conf = self._esmfold.get_confidence_scores()
-
-        plddt = conf.get("plddt", np.full(len(sequence), 50.0))
-        mean_plddt = conf.get("mean_plddt", 50.0)
-
-        return {
-            "ca_coords": ca_coords,
-            "pdb_string": self._esmfold.last_pdb_string or "",
-            "plddt": plddt,
-            "mean_plddt": mean_plddt,
-            "pae": None,  # ESMFold doesn't provide PAE
-            "ptm": None,
-            "backend": "esmfold_fallback",
-        }
 
     # ──────────────────────────────────────────────────────────────────────
     #  PDB Parsing & Generation

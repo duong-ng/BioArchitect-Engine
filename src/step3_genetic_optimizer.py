@@ -306,7 +306,7 @@ class BioArchitectGA:
         
         ConfidenceBonus = ef_hand_plddt_norm * (1 - ef_hand_pae_norm)
         
-        When confidence_scores is None (e.g. ESMFold without PAE),
+        When confidence_scores is None (no PAE available),
         returns a neutral score of 0.5 so it does not penalize or boost.
         
         Args:
@@ -358,7 +358,7 @@ class BioArchitectGA:
             else:
                 pae_norm = 0.5  # Neutral
         else:
-            pae_norm = 0.5  # Neutral — no PAE data (ESMFold)
+            pae_norm = 0.5  # Neutral — no PAE data
         
         # ── Combined score ───────────────────────────────────────────
         # High pLDDT (close to 1) AND low PAE (close to 0) = high bonus
@@ -380,7 +380,7 @@ class BioArchitectGA:
         how much we trust the predicted pocket geometry.
         
         Args:
-            coords (np.ndarray): CA coordinates from AF2/ESMFold.
+            coords (np.ndarray): CA coordinates from AlphaFold2.
             target_res_1 (int): First target residue index.
             target_res_2 (int): Second target residue index.
             sequence (str, optional): Protein sequence for residue type analysis.

@@ -7,7 +7,6 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 files = [
     "lanthanide_params.py",
     "step1_mutation_generator.py",
-    "step2_folding_evaluator.py",
     "step2_af2_folding_evaluator.py",
     "step3_genetic_optimizer.py",
     "step4_md_validation.py",

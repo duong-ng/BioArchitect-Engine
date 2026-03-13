@@ -147,7 +147,7 @@ class MDValidator:
         expects OXT atom at C-terminal.
         
         Args:
-            pdb_string (str): Raw PDB string from ESMFold.
+            pdb_string (str): Raw PDB string from AlphaFold2.
             pH (float): Solution pH for protonation state determination.
         
         Returns:
@@ -287,7 +287,7 @@ class MDValidator:
         
         Args:
             sequence (str): Protein sequence.
-            coords (np.ndarray): CA coordinates from ESMFold.
+            coords (np.ndarray): CA coordinates from AlphaFold2.
             metal (str): Metal ion to place in binding pocket.
             steps (int): Number of MD steps.
             temperature (float): Simulation temperature in Kelvin.
