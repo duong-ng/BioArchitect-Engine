@@ -75,15 +75,15 @@ class BioArchitectGA:
         # Load ion parameters
         self.ion_params = get_ion_params(target_ion)
         
-        # ── Fitness weights (REBALANCED with AF2 confidence) ────────
+        # ── Fitness weights (REBALANCED with folding confidence) ──────
         # Geometry dominates to force pocket convergence first
-        # w_confidence added for AF2 pLDDT/PAE integration
+        # w_confidence added for ESMFold pLDDT/pTM integration
         self.w_geometry = 0.40     # Geometric distance score
         self.w_binding = 0.18     # Binding energy score
         self.w_stability = 0.15   # Network stability - matrix exp
         self.w_selectivity = 0.10 # Ion selectivity vs competitors
         self.w_coordination = 0.07 # Coordination geometry quality
-        self.w_confidence = 0.10  # AF2 confidence bonus (pLDDT + PAE)
+        self.w_confidence = 0.10  # ESMFold confidence bonus (pLDDT + pTM)
         
         # Cliff penalty threshold: any distance beyond this gets
         # exponentially crushed
@@ -299,7 +299,7 @@ class BioArchitectGA:
 
     def _confidence_bonus(self, confidence_scores, binding_indices=None):
         """
-        Compute confidence bonus from AlphaFold2 pLDDT and PAE scores.
+        Compute confidence bonus from folding evaluator pLDDT and PAE scores.
         
         Higher pLDDT in EF-hand regions = more trustworthy pocket geometry.
         Lower PAE between binding residues = higher inter-residue accuracy.
@@ -370,17 +370,17 @@ class BioArchitectGA:
                           sequence=None, binding_indices=None,
                           confidence_scores=None):
         """
-        LanRecov Fitness Function with CLIFF PENALTY + AF2 Confidence:
+        LanRecov Fitness Function with CLIFF PENALTY + Folding Confidence:
         
             F = w₁·Geometric(cliff) + w₂·BindingEnergy + w₃·Stability + 
                 w₄·Selectivity + w₅·Coordination + w₆·ConfidenceBonus
         
         The geometric term uses an exponential cliff penalty for r > 3.0 Å.
-        The confidence bonus uses AlphaFold2 pLDDT and PAE to weight 
+        The confidence bonus uses ESMFold pLDDT and PAE to weight 
         how much we trust the predicted pocket geometry.
         
         Args:
-            coords (np.ndarray): CA coordinates from AlphaFold2.
+            coords (np.ndarray): CA coordinates from ESMFold.
             target_res_1 (int): First target residue index.
             target_res_2 (int): Second target residue index.
             sequence (str, optional): Protein sequence for residue type analysis.
@@ -431,7 +431,7 @@ class BioArchitectGA:
         coord_indices = binding_indices if binding_indices else [target_res_1, target_res_2]
         coord_score = self._coordination_score(coords, coord_indices)
         
-        # 6. AF2 Confidence bonus (pLDDT + PAE)
+        # 6. ESMFold Confidence bonus (pLDDT + pTM)
         conf_score = self._confidence_bonus(confidence_scores, coord_indices)
         
         # ── Weighted total fitness ──────────────────────────────────────

@@ -40,7 +40,7 @@ The engine combines four state-of-the-art AI/computational methods into a single
 | Step | Method | Purpose |
 |------|--------|---------|
 | **1** | **ProteinMPNN** | Ion-biased mutation generation in EF-hand binding regions |
-| **2** | **AlphaFold2** | High-accuracy 3D structure prediction with confidence scoring |
+| **2** | **ESMFold v1** | Rapid single-sequence 3D structure prediction with pLDDT + pTM confidence |
 | **3** | **Genetic Algorithm + Matrix Exponentiation** | Multi-objective fitness optimization with cliff penalty |
 | **4** | **Molecular Dynamics** | Structural stability validation (OpenMM / ASE / analytical) |
 
@@ -57,7 +57,7 @@ The **LanRecov** enhancement extends the pipeline to support **ion-specific opti
 │                                                                 │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────────┐   │
 │  │  Step 1       │    │  Step 2       │    │  Step 3           │   │
-│  │  ProteinMPNN  │───▶│  AlphaFold2   │───▶│  Genetic          │   │
+│  │  ProteinMPNN  │───▶│  ESMFold v1   │───▶│  Genetic          │   │
 │  │  Mutation     │    │  Structure    │    │  Algorithm +      │   │
 │  │  Generator    │    │  Prediction   │    │  Matrix Exp.      │   │
 │  └──────────────┘    └──────────────┘    └────────┬─────────┘   │
@@ -81,8 +81,8 @@ The **LanRecov** enhancement extends the pipeline to support **ion-specific opti
 ### 🔬 Core Capabilities
 
 - **ProteinMPNN Native Integration** — Runs the ProteinMPNN neural network entirely in PyTorch for mutation generation, with fallback to heuristic ion-biased sampling
-- **AlphaFold2 Structure Prediction** — Supports LocalColabFold (MSA-based) and OpenFold (single-sequence) backends with PAE and pLDDT confidence scoring
-- **Multi-Objective Genetic Algorithm** — 6-component fitness function: geometry, binding energy, stability, selectivity, coordination quality, and AF2 confidence
+- **ESMFold v1 Structure Prediction** — Single-sequence protein language model via Hugging Face transformers with pLDDT and pTM confidence scoring
+- **Multi-Objective Genetic Algorithm** — 6-component fitness function: geometry, binding energy, stability, selectivity, coordination quality, and folding confidence
 - **Molecular Dynamics Validation**h — OpenMM (explicit solvent), ASE (ML potentials), or enhanced physics-based mock engine
 
 ### 🧪 LanRecov Enhancements
@@ -122,7 +122,7 @@ BioArchitect Engine/
 │   ├── main_optimizer.py           # Main pipeline orchestrator
 │   ├── lanthanide_params.py        # Lanthanide ion parameter database
 │   ├── step1_mutation_generator.py # ProteinMPNN mutation generator
-│   ├── step2_af2_folding_evaluator.py  # AlphaFold2 structure predictor
+│   ├── step2_esmfold_evaluator.py  # ESMFold v1 structure predictor
 │   ├── step3_genetic_optimizer.py  # Genetic Algorithm + Matrix Exp.
 │   ├── step4_md_validation.py      # Molecular Dynamics validation
 │   ├── _verify_all.py              # Module verification script
@@ -152,9 +152,8 @@ pip install torch numpy scipy
 ### Optional Dependencies (for full functionality)
 
 ```bash
-# AlphaFold2 backends
-pip install colabfold[alphafold2]   # LocalColabFold (recommended)
-pip install openfold                # OpenFold (single-sequence fallback)
+# ESMFold v1 backend
+pip install transformers             # Hugging Face transformers (ESMFold)
 
 # Molecular Dynamics engines
 pip install openmm                  # Full explicit-solvent MD
@@ -164,7 +163,7 @@ pip install ase                     # ASE with ML potentials (MACE-OFF23, ANI-2x
 pip install pdbfixer                # Fix missing atoms, protonation states
 ```
 
-> **Note:** The engine gracefully degrades when optional dependencies are missing. Without ColabFold/OpenFold, the AF2 evaluator uses a CA-only mock predictor. Without OpenMM/ASE, the MD validator uses an enhanced physics-based estimator.
+> **Note:** The engine gracefully degrades when optional dependencies are missing. Without transformers/torch, the ESMFold evaluator reports the missing dependency. Without OpenMM/ASE, the MD validator uses an enhanced physics-based estimator.
 
 ---
 
@@ -249,7 +248,7 @@ F = w₁·Geometric(cliff) + w₂·BindingEnergy + w₃·Stability +
 | **Stability** | `w₃` | Matrix Exponentiation allosteric network robustness score |
 | **Selectivity** | `w₄` | Preference for target ion over competing ions (Fe³⁺, Ca²⁺, etc.) |
 | **Coordination** | `w₅` | Symmetry quality of coordinating residues around binding site |
-| **Confidence** | `w₆` | AlphaFold2 pLDDT and PAE confidence bonus in EF-hand regions |
+| **Confidence** | `w₆` | ESMFold pLDDT and pTM confidence bonus in EF-hand regions |
 
 ### EF-Hand Loop Definitions
 
@@ -296,16 +295,16 @@ Generates mutant protein sequences targeting EF-hand binding regions.
 | `ProteinMPNNGenerator.generate_population()` | Generate a population of mutant sequences |
 | `setup_proteinmpnn()` | Auto-download ProteinMPNN model weights |
 
-### `step2_af2_folding_evaluator.py` — AlphaFold2 Evaluator
+### `step2_esmfold_evaluator.py` — ESMFold v1 Evaluator
 
 Predicts 3D protein structure with confidence scoring.
 
 | Class / Function | Description |
 |-----------------|-------------|
-| `AlphaFold2Evaluator` | Main evaluator with ColabFold/OpenFold backend auto-detection |
-| `AlphaFold2Evaluator.predict_structure()` | Predict CA coordinates from sequence |
-| `AlphaFold2Evaluator.predict_full()` | Full prediction with pLDDT, PAE, pTM scores |
-| `AlphaFold2Evaluator.write_pdb()` | Export structure to PDB file |
+| `ESMFoldEvaluator` | Main evaluator using facebook/esmfold_v1 via Hugging Face transformers |
+| `ESMFoldEvaluator.predict_structure()` | Predict CA coordinates from sequence |
+| `ESMFoldEvaluator.predict_full()` | Full prediction with pLDDT, pTM scores |
+| `ESMFoldEvaluator.write_pdb()` | Export structure to PDB file |
 
 ### `step3_genetic_optimizer.py` — Genetic Algorithm
 

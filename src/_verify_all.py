@@ -7,7 +7,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 files = [
     "lanthanide_params.py",
     "step1_mutation_generator.py",
-    "step2_af2_folding_evaluator.py",
+    "step2_esmfold_evaluator.py",
     "step3_genetic_optimizer.py",
     "step4_md_validation.py",
     "main_optimizer.py",
@@ -46,10 +46,10 @@ except Exception as e:
     all_ok = False
 
 try:
-    from step2_af2_folding_evaluator import AlphaFold2Evaluator
-    print("  OK  step2_af2_folding_evaluator")
+    from step2_esmfold_evaluator import ESMFoldEvaluator
+    print("  OK  step2_esmfold_evaluator")
 except Exception as e:
-    print(f"  FAIL step2_af2_folding_evaluator: {e}")
+    print(f"  FAIL step2_esmfold_evaluator: {e}")
     all_ok = False
 
 # Test GA cliff penalty

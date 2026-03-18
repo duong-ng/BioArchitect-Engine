@@ -6,7 +6,7 @@
  
  Pipeline Steps:
    1. ProteinMPNN — Ion-biased mutation generation in EF-hand regions
-   2. AlphaFold2 — High-accuracy 3D structure prediction (PAE + pLDDT)
+   2. ESMFold — Rapid single-sequence 3D structure prediction (pLDDT + pTM)
    3. Genetic Algorithm — LanRecov fitness (binding + selectivity + stability + confidence)
    4. Molecular Dynamics — Structural validation (OpenMM/ASE/mock)
    5. PDB Export — ChimeraX visualization
@@ -39,11 +39,11 @@ from lanthanide_params import (
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  AlphaFold2 Backend (ColabFold / OpenFold)
+#  ESMFold Backend (facebook/esmfold_v1 via Hugging Face transformers)
 # ═══════════════════════════════════════════════════════════════════════════
-from step2_af2_folding_evaluator import AlphaFold2Evaluator
+from step2_esmfold_evaluator import ESMFoldEvaluator
 from step3_genetic_optimizer import BioArchitectGA
-print("[Config] Using AlphaFold2 backend (ColabFold/OpenFold)")
+print("[Config] Using ESMFold v1 backend (single-sequence language model)")
 
 # 6MI5 FASTA SEQUENCE
 base_fasta = "PTTTTKVDIAAFDPDKDGTIDLKEALAAGSAAFDKLDPDKDGTLDAKELKGRVSEADLKKLDPDNDGTLDKKEYLAAVEAQFKAANPDNDGTIDARELASPAGSALVNLIRHHHHHH"
@@ -98,10 +98,9 @@ def run_bioarchitect_pipeline(target_ion="La", pH=7.0, generations=20,
         pH_resistant=pH_resistant,
     )
     
-    # Initialize AlphaFold2 evaluator with LanRecov config
-    evaluator = AlphaFold2Evaluator(
+    # Initialize ESMFold evaluator with LanRecov config
+    evaluator = ESMFoldEvaluator(
         device='cpu',
-        num_recycles=3,
         ef_hands=ef_hands,
         fix_pdb=True,
         fix_pH=pH,
@@ -137,10 +136,10 @@ def run_bioarchitect_pipeline(target_ion="La", pH=7.0, generations=20,
         scored_population = []
         
         for idx, seq in enumerate(population):
-            # Pipeline Step 2: AlphaFold2 structure prediction
+            # Pipeline Step 2: ESMFold structure prediction
             coords = evaluator.predict_structure(seq)
             
-            # Get confidence scores if available (AF2 provides PAE)
+            # Get confidence scores if available (pLDDT + pTM)
             confidence_scores = None
             try:
                 confidence_scores = evaluator.get_confidence_scores()
