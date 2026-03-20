@@ -60,8 +60,8 @@ ef_hands = {
 base_pdb = r"d:\BioArchitect Engine\data\6MI5.pdb"
 
 
-def run_bioarchitect_pipeline(target_ion="La", pH=7.0, generations=20,
-                               population_size=30, mutation_rate=0.15,
+def run_bioarchitect_pipeline(target_ion="Nd", pH=7.0, generations=20,
+                               population_size=40, mutation_rate=0.15,
                                pH_resistant=False):
     """
     Run the full BioArchitect Engine optimization pipeline for a specific ion.
