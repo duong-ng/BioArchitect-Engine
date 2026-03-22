@@ -60,8 +60,8 @@ ef_hands = {
 base_pdb = r"d:\BioArchitect Engine\data\6MI5.pdb"
 
 
-def run_bioarchitect_pipeline(target_ion="La", pH=7.0, generations=20,
-                               population_size=30, mutation_rate=0.15,
+def run_bioarchitect_pipeline(target_ion="Pr", pH=7.0, generations=20,
+                               population_size=40, mutation_rate=0.15,
                                pH_resistant=False):
     """
     Run the full BioArchitect Engine optimization pipeline for a specific ion.
@@ -299,7 +299,7 @@ def run_multi_ion_pipeline(target_ions, **kwargs):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BioArchitect Engine — LanRecov Pipeline")
-    parser.add_argument("--ion", type=str, default="La",
+    parser.add_argument("--ion", type=str, default="Pr",
                         help="Target Lanthanide ion (e.g. La, Nd, Dy)")
     parser.add_argument("--multi", type=str, default=None,
                         help="Comma-separated list of ions for multi-ion screening (e.g. La,Nd,Dy)")
@@ -307,8 +307,8 @@ if __name__ == "__main__":
                         help="Solution pH for MD validation (default: 7.0)")
     parser.add_argument("--generations", type=int, default=20,
                         help="Number of GA generations (default: 20)")
-    parser.add_argument("--population", type=int, default=30,
-                        help="Population size per generation (default: 30)")
+    parser.add_argument("--population", type=int, default=40,
+                        help="Population size per generation (default: 40)")
     parser.add_argument("--mutation-rate", type=float, default=0.15,
                         help="GA mutation rate (default: 0.15, adaptive decay to 0.05)")
     parser.add_argument("--pH-resistant", action="store_true",

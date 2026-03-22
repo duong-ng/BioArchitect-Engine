@@ -108,6 +108,7 @@ The **LanRecov** enhancement extends the pipeline to support **ion-specific opti
 BioArchitect Engine/
 ├── README.md                       # This file
 ├── LICENSE                         # MIT License
+├── add_ion_to_pdb.py               # Post-processing: add Ln³⁺ ions to PDB
 ├── data/
 │   ├── 6MI5.pdb                    # Wild-type Lanmodulin crystal structure
 │   ├── 6MI5.cif                    # CIF format structure
@@ -118,11 +119,17 @@ BioArchitect Engine/
 │   ├── Bio-Architect.docx          # Full documentation
 │   ├── Bio-Architect-updates.docx  # Update documentation
 │   └── prompt.txt                  # AI design prompts
+├── reference/
+│   └── 6MI5.pdb                    # Reference NMR structure (Y³⁺-lanmodulin)
+├── result/
+│   ├── best_*_lanmodulin*.pdb      # Optimized structures (protein-only)
+│   ├── *_with_*.pdb                # Structures with Ln³⁺ ions placed
+│   └── *_relaxed.pdb               # MD-relaxed structures
 ├── src/
 │   ├── main_optimizer.py           # Main pipeline orchestrator
 │   ├── lanthanide_params.py        # Lanthanide ion parameter database
 │   ├── step1_mutation_generator.py # ProteinMPNN mutation generator
-│   ├── step2_esmfold_evaluator.py  # ESMFold v1 structure predictor
+│   ├── step2_esmfold_evaluator.py  # ESMFold v1 structure predictor (API)
 │   ├── step3_genetic_optimizer.py  # Genetic Algorithm + Matrix Exp.
 │   ├── step4_md_validation.py      # Molecular Dynamics validation
 │   ├── _verify_all.py              # Module verification script
@@ -146,15 +153,12 @@ BioArchitect Engine/
 ### Required Dependencies
 
 ```bash
-pip install torch numpy scipy
+pip install torch numpy scipy requests
 ```
 
 ### Optional Dependencies (for full functionality)
 
 ```bash
-# ESMFold v1 backend
-pip install transformers             # Hugging Face transformers (ESMFold)
-
 # Molecular Dynamics engines
 pip install openmm                  # Full explicit-solvent MD
 pip install ase                     # ASE with ML potentials (MACE-OFF23, ANI-2x)
@@ -163,7 +167,7 @@ pip install ase                     # ASE with ML potentials (MACE-OFF23, ANI-2x
 pip install pdbfixer                # Fix missing atoms, protonation states
 ```
 
-> **Note:** The engine gracefully degrades when optional dependencies are missing. Without transformers/torch, the ESMFold evaluator reports the missing dependency. Without OpenMM/ASE, the MD validator uses an enhanced physics-based estimator.
+> **Note:** The engine gracefully degrades when optional dependencies are missing. ESMFold uses the public REST API (`requests` + `numpy`, no local GPU needed). Without OpenMM/ASE, the MD validator uses an enhanced physics-based estimator.
 
 ---
 
@@ -227,6 +231,71 @@ results = run_multi_ion_pipeline(
     pH_resistant=True,
 )
 ```
+
+---
+
+## Post-Processing: Ln³⁺ Ion Placement & Analysis
+
+After the GA pipeline produces an optimized PDB, the following tools add metal ions and analyze binding pocket geometry.
+
+### Adding Lanthanide Ions
+
+```bash
+# Add Pr³⁺ ions at EF-hand centroids
+python add_ion_to_pdb.py --input result/best_Pr_lanmodulin_variant.pdb --ion PR
+
+# Add Nd³⁺ ions
+python add_ion_to_pdb.py --input result/best_Nd_lanmodulin.pdb --ion ND
+
+# Add La³⁺ ions
+python add_ion_to_pdb.py --input result/best_La_lanmodulin_variant.pdb --ion LA
+```
+
+The script places each ion at the **centroid of coordinating oxygens** (OD1/OD2 from Asp, OE1/OE2 from Glu, OD1 from Asn, OG from Ser, OG1 from Thr) within each EF-hand loop, and writes HETATM records on chain B.
+
+### Inspecting Distances in ChimeraX
+
+```bash
+# Open structure
+open "result/best_Pr_lanmodulin_variant_with_PR.pdb"
+
+# Style metal ions
+select /B; style sel sphere; color sel gold; size sel atomRadius 1.5
+
+# Measure Ln-O distances
+distance #1/B:1@PR #1/A:21@OD2    # EF1
+distance #1/B:2@PR #1/A:37@OD1    # EF2
+distance #1/B:3@PR #1/A:70@OD1    # EF3
+distance #1/B:4@PR #1/A:94@OD1    # EF4
+```
+
+### Interpreting Coordination Distances
+
+Lanthanide ions are **hard Lewis acids** with **high coordination numbers (CN = 7–9)** and prefer a loose, uniformly distributed coordination shell:
+
+| Quality | Ln–O Distance | Meaning |
+|---------|--------------|----------|
+| ✅ Inner sphere | 2.3–2.7 Å | True coordination bond |
+| ⚠️ Second shell | 2.7–3.5 Å | Weak interaction, may coordinate |
+| ❌ Non-coordinating | > 3.5 Å | Electrostatic only |
+| ❌ Too tight | < 2.0 Å | Artifact (centroid bias) |
+
+> **Key distinction from transition metals:** Lanthanides prefer **distributed 9-fold coordination** (9 ligands at ~2.5 Å each), not tight bidentate chelation (CN = 4–6). A single Asp with both OD1/OD2 at ~2.0 Å is an artifact, not realistic.
+
+### Optimal Ln–O Distances by Ion
+
+| Ion | Ionic Radius (Å) | Optimal Ln–O (Å) | Group |
+|-----|-----------------|-----------------|-------|
+| La³⁺ | 1.216 | 2.55 | Light |
+| Pr³⁺ | 1.179 | 2.51 | Light |
+| Nd³⁺ | 1.163 | 2.49 | Light |
+| Sm³⁺ | 1.132 | 2.46 | Light |
+| Eu³⁺ | 1.120 | 2.45 | Middle |
+| Gd³⁺ | 1.107 | 2.44 | Middle |
+| Dy³⁺ | 1.083 | 2.42 | Heavy |
+| Er³⁺ | 1.062 | 2.39 | Heavy |
+| Yb³⁺ | 1.042 | 2.37 | Heavy |
+| Lu³⁺ | 1.032 | 2.36 | Heavy |
 
 ---
 
@@ -297,14 +366,14 @@ Generates mutant protein sequences targeting EF-hand binding regions.
 
 ### `step2_esmfold_evaluator.py` — ESMFold v1 Evaluator
 
-Predicts 3D protein structure with confidence scoring.
+Predicts 3D protein structure via the ESMFold v1 REST API (cloud-based, no local GPU needed).
 
 | Class / Function | Description |
 |-----------------|-------------|
-| `ESMFoldEvaluator` | Main evaluator using facebook/esmfold_v1 via Hugging Face transformers |
+| `ESMFoldEvaluator` | API-based evaluator using ESM Metagenomic Atlas REST endpoint |
 | `ESMFoldEvaluator.predict_structure()` | Predict CA coordinates from sequence |
-| `ESMFoldEvaluator.predict_full()` | Full prediction with pLDDT, pTM scores |
-| `ESMFoldEvaluator.write_pdb()` | Export structure to PDB file |
+| `ESMFoldEvaluator.predict_full()` | Full prediction with pLDDT scores |
+| `ESMFoldEvaluator.write_pdb()` | Export PDBFixer-processed structure to PDB file |
 
 ### `step3_genetic_optimizer.py` — Genetic Algorithm
 
@@ -329,6 +398,17 @@ Validates structural stability through simulation.
 | `MDValidator.run_simulation()` | Run MD simulation with metal ion placement |
 | `MDValidator.validate_pH_stability()` | Test stability across pH range |
 | `MDValidator.check_ion_selectivity()` | Compare binding affinity for competing ions |
+
+### `add_ion_to_pdb.py` — Post-Processing Ion Placement
+
+Adds Ln³⁺ HETATM records at EF-hand binding pocket centroids.
+
+| Function | Description |
+|----------|-------------|
+| `add_metal_ions()` | Place ions at coordination oxygen centroids, report distances |
+| `parse_pdb_atoms()` | Parse ATOM/HETATM records from PDB |
+| `find_coordinating_oxygens()` | Identify sidechain oxygens within EF-hand loops |
+| `compute_centroid()` | Calculate centroid of oxygen positions |
 
 ### `lanthanide_params.py` — Ion Database
 
